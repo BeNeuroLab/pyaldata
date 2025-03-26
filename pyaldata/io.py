@@ -91,3 +91,5 @@ def load_pyaldata(path: str, shift_idx_fields: bool = False, td_name: str = None
         df_single = mat2dataframe(file, shift_idx_fields, td_name)
         df.append(df_single)
     df = pd.concat(df, ignore_index=True)
+    
+    return df
