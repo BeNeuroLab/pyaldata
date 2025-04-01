@@ -182,7 +182,7 @@ def remove_low_firing_neurons(
         trial_data[unit_guide] = [arr[mask, :] for arr in trial_data[unit_guide]]
 
     if kslabel in trial_data.columns:
-        trial_data[kslabel] = [arr[mask, :] for arr in trial_data[kslabel]]
+        trial_data[kslabel] = [arr[mask] for arr in trial_data[kslabel]]
 
     if verbose:
         print(f"Removed {np.sum(~mask)} neurons from {signal}.")
