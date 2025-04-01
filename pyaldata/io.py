@@ -84,7 +84,7 @@ def load_pyaldata(path: str, shift_idx_fields: bool = False, td_name: str = None
         each row is a trial
     """
     
-    pyal_files = list(Path(path).glob("*.mat"))
+    pyal_files = sorted(list(Path(path).glob("*.mat")))
 
     df = []
     for file in pyal_files:
