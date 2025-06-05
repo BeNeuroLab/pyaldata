@@ -66,12 +66,13 @@ def clean_integer_fields(df: pd.DataFrame):
     -------
     a copy of df with the relevant fields changed
     """
+    bad_fields = []
     for field in df.columns:
         if isinstance(df[field].values[0], np.ndarray):
             try:
                 int_arrays = [np.int32(arr) for arr in df[field]]
             except Exception:
-                print(f"array field {field} could not be converted to int.")
+                bad_fields.append(field)
             else:
                 if all(
                     [
@@ -85,9 +86,11 @@ def clean_integer_fields(df: pd.DataFrame):
                 try:
                     int_version = np.int32(df[field])
                 except Exception:
-                    print(f"field {field} could not be converted to int.")
+                    bad_fields.append(field)
                 else:
                     if np.allclose(int_version, df[field]):
                         df[field] = int_version
+
+    print(f"fields: {bad_fields} could not be converted to int.")
 
     return df
