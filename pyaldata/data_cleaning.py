@@ -44,6 +44,33 @@ def clean_0d_array_fields(df: pd.DataFrame) -> pd.DataFrame:
     -------
     a copy of df with the relevant fields changed
     """
+    
+    spike_fields = [name for name in df.columns.values if name.endswith("_spikes")]
+    
+    for c in spike_fields:
+        df[c] = [arr 
+                    if arr.ndim == 2
+                    else arr.reshape(1,-1)
+                    for arr in df[c]
+                ]
+
+    return df
+
+@utils.copy_td
+def clean_0d_spike_fields(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    sometimes spike arrays are stored as 0-dimensional arrays when there is 1 time bin.
+    This converts those back to 2D arrays.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        data in trial_data format
+
+    Returns
+    -------
+    a copy of df with the relevant fields changed
+    """
     for c in df.columns:
         if all(isinstance(el, np.ndarray) for el in df[c].values):
             if all([arr.ndim == 0 for arr in df[c]]):

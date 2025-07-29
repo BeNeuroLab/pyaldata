@@ -55,6 +55,7 @@ def mat2dataframe(path: str, shift_idx_fields: bool, td_name: str = None) -> pd.
     df = pd.DataFrame(mat[td_name])
 
     df = data_cleaning.clean_0d_array_fields(df)
+    df = data_cleaning.clean_0d_array_fields(df)
     df = data_cleaning.clean_integer_fields(df)
 
     if shift_idx_fields:
