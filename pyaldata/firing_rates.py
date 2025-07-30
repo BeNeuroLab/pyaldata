@@ -177,6 +177,7 @@ def remove_low_firing_neurons(
     area_name = utils.remove_suffix(signal, suffix)
     unit_guide = area_name + "_unit_guide"
     kslabel = area_name + "_KSLabel"
+    kslabel = kslabel if kslabel in trial_data.columns else kslabel.lower()
 
     if unit_guide in trial_data.columns:
         trial_data[unit_guide] = [arr[mask, :] for arr in trial_data[unit_guide]]
