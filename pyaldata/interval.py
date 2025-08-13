@@ -99,9 +99,7 @@ def restrict_to_interval(
     # warn about dropping the problematic trials
     if np.any(~kept_trials_mask):
         warnings.warn(
-            f"""Dropping the trials with the following IDs because of invalid time indexing. For more information, try warn_per_trial=True
-
-        {trial_data.trial_id.values[~kept_trials_mask]}""",
+            f"Dropping {len(trial_data.trial_id.values[~kept_trials_mask])} trials because of invalid time indexing. For more information, try warn_per_trial=True",
             stacklevel=3,
         )
 
