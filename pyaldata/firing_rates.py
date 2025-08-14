@@ -105,9 +105,6 @@ def get_average_firing_rates(
 
     if signal.endswith("spikes"):
         if divide_by_bin_size is None:
-            utils.warnings.warn(
-                "Assuming spikes are actually spikes and dividing by bin size."
-            )
             divide_by_bin_size = True
     elif signal.endswith("rates"):
         if divide_by_bin_size is None:
