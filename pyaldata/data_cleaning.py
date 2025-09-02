@@ -95,12 +95,9 @@ def clean_integer_fields(df: pd.DataFrame):
     """
     bad_fields = []
     for field in df.columns:
-        if isinstance(df[field].values[0], np.ndarray):
-            try:
+        try:
+            if isinstance(df[field].values[0], np.ndarray):
                 int_arrays = [np.int32(arr) for arr in df[field]]
-            except Exception:
-                bad_fields.append(field)
-            else:
                 if all(
                     [
                         np.allclose(int_arr, arr)
@@ -108,15 +105,13 @@ def clean_integer_fields(df: pd.DataFrame):
                     ]
                 ):
                     df[field] = int_arrays
-        else:
-            if not isinstance(df[field].values[0], str):
-                try:
+            else:
+                if not isinstance(df[field].values[0], str):
                     int_version = np.int32(df[field])
-                except Exception:
-                    bad_fields.append(field)
-                else:
                     if np.allclose(int_version, df[field]):
                         df[field] = int_version
+        except:
+            bad_fields.append(field)
 
     bad_fields = [field for field in bad_fields if 'label' not in field.lower()]
     if bad_fields:
