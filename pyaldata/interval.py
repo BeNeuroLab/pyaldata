@@ -31,6 +31,7 @@ def restrict_to_interval(
     after: int = None,
     epoch_fun: Callable[[pd.Series], slice] = None,
     warn_per_trial: bool = False,
+    ignore_warnings: bool = False,
     reset_index: bool = True,
     ref_field: str = None,
 ):
@@ -60,6 +61,8 @@ def restrict_to_interval(
         function that takes a trial and returns the epoch to extract
     warn_per_trial : bool, optional, default False
         give more detailed warnings about indexing in each problematic trial
+    ignore_warnings : bool, optional, default False
+        Won't print anything if True
     reset_index : bool, optional, default True
         whether to reset the dataframe index to [0,1,2,...]
         or keep the original indices of the kept trials
@@ -72,10 +75,12 @@ def restrict_to_interval(
     data in trial_data format
     """
     if before is not None:
-        warnings.warn("'before' is deprecated. Use 'rel_start' instead.")
+        if not ignore_warnings:
+            warnings.warn("'before' is deprecated. Use 'rel_start' instead.")
         rel_start = -before
     if after is not None:
-        warnings.warn("'after' is deprecated. Use 'rel_end' instead.")
+        if not ignore_warnings:
+            warnings.warn("'after' is deprecated. Use 'rel_end' instead.")
         rel_end = after
 
     assert (start_point_name is None) ^ (
@@ -97,11 +102,12 @@ def restrict_to_interval(
         ]
     ).astype(bool)
     # warn about dropping the problematic trials
-    if np.any(~kept_trials_mask):
-        warnings.warn(
-            f"Dropping {len(trial_data.trial_id.values[~kept_trials_mask])} trials because of invalid time indexing. For more information, try warn_per_trial=True",
-            stacklevel=3,
-        )
+    if not ignore_warnings:
+        if np.any(~kept_trials_mask):
+            warnings.warn(
+                f"Dropping {len(trial_data.trial_id.values[~kept_trials_mask])} trials because of invalid time indexing. For more information, try warn_per_trial=True",
+                stacklevel=3,
+            )
 
     # only keep trials in which the indexing works properly
     trial_data = tools.select_trials(trial_data, kept_trials_mask, reset_index)
