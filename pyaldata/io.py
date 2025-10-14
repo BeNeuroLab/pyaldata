@@ -4,8 +4,7 @@ from pathlib import Path
 
 from . import data_cleaning
 
-__all__ = ["mat2dataframe"
-           "load_pyaldata"]
+__all__ = ["mat2dataframe" "load_pyaldata"]
 
 
 def mat2dataframe(path: str, shift_idx_fields: bool, td_name: str = None) -> pd.DataFrame:
@@ -34,11 +33,11 @@ def mat2dataframe(path: str, shift_idx_fields: bool, td_name: str = None) -> pd.
         mat = scipy.io.loadmat(path, simplify_cells=True)
     except NotImplementedError:
         try:
-            import mat73
+            import hdf5storage
         except ImportError:
             raise ImportError("Must have mat73 installed to load mat73 files.")
         else:
-            mat = mat73.loadmat(path)
+            mat = hdf5storage.loadmat(path)
 
     real_keys = [k for k in mat.keys() if not (k.startswith("__") and k.endswith("__"))]
 
@@ -63,7 +62,10 @@ def mat2dataframe(path: str, shift_idx_fields: bool, td_name: str = None) -> pd.
 
     return df
 
-def load_pyaldata(path: str, shift_idx_fields: bool = False, td_name: str = None) -> pd.DataFrame:
+
+def load_pyaldata(
+    path: str, shift_idx_fields: bool = False, td_name: str = None
+) -> pd.DataFrame:
     """
     Load multiple pyal_data .mat files and turn it into a single pandas DataFrame
 
@@ -84,7 +86,7 @@ def load_pyaldata(path: str, shift_idx_fields: bool = False, td_name: str = None
         pandas dataframe replicating the trial_data format
         each row is a trial
     """
-    
+
     pyal_files = sorted(list(Path(path).glob("*.mat")))
 
     df = []
@@ -92,5 +94,5 @@ def load_pyaldata(path: str, shift_idx_fields: bool = False, td_name: str = None
         df_single = mat2dataframe(file, shift_idx_fields, td_name)
         df.append(df_single)
     df = pd.concat(df, ignore_index=True)
-    
+
     return df

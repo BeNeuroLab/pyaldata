@@ -2,15 +2,16 @@
 name = "pyaldata"
 version = "0.2.0"
 description = "Python implementation of TrialData, a library for simplifying the analysis of trial-based data from neuroscience experiments"
-authors = ["Matt Perich", "Catia Fortunato", "Raeed Chowdhury", "Bence Bagi", ]
+authors = ["Matt Perich", "Catia Fortunato", "Raeed Chowdhury", "Bence Bagi"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 numpy = "^1.26.4"
 pandas = "^2.2.2"
 scipy = "^1.13.0"
 mat73 = "^0.63"
+hdf5storage = "^0.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
