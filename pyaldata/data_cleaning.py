@@ -115,6 +115,6 @@ def clean_integer_fields(df: pd.DataFrame):
 
     bad_fields = [field for field in bad_fields if 'label' not in field.lower()]
     if bad_fields:
-        print(f"fields: {bad_fields} could not be converted to int.")
+        utils.warnings.warn(f"fields: {bad_fields} could not be converted to int.")
 
     return df
