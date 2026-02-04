@@ -57,6 +57,9 @@ def combine_time_bins(
     rate_fields = [col for col in trial_data.columns if col.endswith("rates")]
     idx_fields = [col for col in trial_data.columns if col.startswith("idx")]
 
+    if ref_field is None:
+        ref_field = utils.determine_ref_field(trial_data)
+        
     # check if there are any time-varying fields left
     other_time_fields = [
         col
@@ -111,9 +114,14 @@ def combine_time_bins(
         # remove duplicate field names
         other_time_fields = list(set(other_time_fields + extra_time_fields))
 
-    # rebin the time-varying fields left
+    # rebin tdhe time-varying fields left
     for col in other_time_fields:
         trial_data[col] = [rebin_array(arr, np.mean) for arr in trial_data[col]]
+
+    if 'trial_length' in trial_data.columns:
+        trial_data['trial_length'] = [
+            arr.shape[0] for arr in trial_data[ref_field]
+        ]
 
     return trial_data
 
