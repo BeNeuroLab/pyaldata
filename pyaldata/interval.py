@@ -140,6 +140,9 @@ def restrict_to_interval(
             _adjust_field(idx, new_T)
             for (idx, new_T) in zip(trial_data[col], new_time_lengths)
         ]
+    
+    if 'trial_length' in trial_data.columns:
+        trial_data['trial_length'] = new_time_lengths
 
     return trial_data
 
