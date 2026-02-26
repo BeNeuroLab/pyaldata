@@ -94,13 +94,16 @@ def restrict_to_interval(
     if start_point_name is not None:
         epoch_fun = generate_epoch_fun(start_point_name, end_point_name, rel_start, rel_end)
 
-    # check in which trials the indexing works properly
-    kept_trials_mask = np.array(
-        [
-            slice_in_trial(trial, epoch_fun(trial), warn_per_trial)
-            for (i, trial) in trial_data.iterrows()
-        ]
-    ).astype(bool)
+    # Single iterrows pass: compute epoch slices and validity together.
+    # This avoids re-calling epoch_fun N*n_fields times later.
+    all_slices: list = []
+    kept_trials_mask_list: list = []
+    for (_, trial) in trial_data.iterrows():
+        sl = epoch_fun(trial)
+        all_slices.append(sl)
+        kept_trials_mask_list.append(slice_in_trial(trial, sl, warn_per_trial))
+    kept_trials_mask = np.array(kept_trials_mask_list, dtype=bool)
+
     # warn about dropping the problematic trials
     if not ignore_warnings:
         if np.any(~kept_trials_mask):
@@ -109,12 +112,16 @@ def restrict_to_interval(
                 stacklevel=3,
             )
 
+    # keep only the slices for valid trials
+    kept_slices = [sl for sl, keep in zip(all_slices, kept_trials_mask) if keep]
+
     # only keep trials in which the indexing works properly
     trial_data = tools.select_trials(trial_data, kept_trials_mask, reset_index)
 
-    # cut time varying signals
+    # cut time varying signals using precomputed slices (no extra epoch_fun calls)
     trim_temp = {
-        col: extract_interval_from_signal(trial_data, col, epoch_fun) for col in time_fields
+        col: [arr[sl, ...] for arr, sl in zip(trial_data[col], kept_slices)]
+        for col in time_fields
     }
     trial_data = trial_data.assign(**trim_temp)
 
@@ -128,7 +135,15 @@ def restrict_to_interval(
             return val
 
     new_time_lengths = [arr.shape[0] for arr in trial_data[time_fields[0]]]
-    zero_points = [epoch_fun(trial).start for (i, trial) in trial_data.iterrows()]
+    # zero_points come directly from precomputed slices — no extra iterrows
+    zero_points = [sl.start for sl in kept_slices]
+
+    # Save absolute session indices before the loop shifts them
+    if 'idx_trial_start' in idx_fields:
+        abs_trial_starts = [
+            int(gs) + zp
+            for gs, zp in zip(trial_data['idx_trial_start'].to_numpy(), zero_points)
+        ]
 
     for col in idx_fields:
         trial_data[col] = [
@@ -140,7 +155,15 @@ def restrict_to_interval(
             _adjust_field(idx, new_T)
             for (idx, new_T) in zip(trial_data[col], new_time_lengths)
         ]
-    
+
+    # Restore idx_trial_start and idx_trial_end as absolute session indices
+    if 'idx_trial_start' in idx_fields:
+        trial_data['idx_trial_start'] = abs_trial_starts
+    if 'idx_trial_end' in idx_fields:
+        trial_data['idx_trial_end'] = [
+            s + t - 1 for s, t in zip(abs_trial_starts, new_time_lengths)
+        ]
+
     if 'trial_length' in trial_data.columns:
         trial_data['trial_length'] = new_time_lengths
 
