@@ -86,13 +86,22 @@ def determine_ref_field(trial_data: pd.DataFrame) -> str:
         if col.endswith("spikes") or col.endswith("rates")
     ]
 
-    # make sure they all have the same number of timepoints on all trials
-    for i, trial in trial_data.iterrows():
-        if len({trial[field].shape[0] for field in spike_rate_fields}) != 1:
-            n_tp = {field: trial[field].shape[0] for field in spike_rate_fields}
-            raise ValueError(
-                f"Number of timepoints in spike/rate fields doesn't match. Found these fields: {n_tp}"
-            )
+    # Vectorized check: extract lengths for each field across all trials at once
+    # instead of iterating row-by-row with iterrows()
+    if len(spike_rate_fields) > 1:
+        field_lengths = {
+            field: np.array([arr.shape[0] for arr in trial_data[field].values])
+            for field in spike_rate_fields
+        }
+        ref_lengths = field_lengths[spike_rate_fields[0]]
+        for field in spike_rate_fields[1:]:
+            mismatches = np.where(ref_lengths != field_lengths[field])[0]
+            if len(mismatches) > 0:
+                idx = mismatches[0]
+                n_tp = {f: field_lengths[f][idx] for f in spike_rate_fields}
+                raise ValueError(
+                    f"Number of timepoints in spike/rate fields doesn't match. Found these fields: {n_tp}"
+                )
 
     # if they all match, just return the first one
     return spike_rate_fields[0]
@@ -192,10 +201,13 @@ def get_array_fields(trial_data: pd.DataFrame) -> list[str]:
     -------
     columns that have array values : list of str
     """
+    # Pre-check first element to skip non-array columns fast,
+    # then use generator (not list) in all() for short-circuit evaluation
     return [
         col
         for col in trial_data.columns
-        if all([isinstance(el, np.ndarray) for el in trial_data[col]])
+        if isinstance(trial_data[col].iloc[0], np.ndarray)
+        and all(isinstance(el, np.ndarray) for el in trial_data[col].values)
     ]
 
 
@@ -212,10 +224,13 @@ def get_string_fields(trial_data: pd.DataFrame) -> list[str]:
     -------
     columns that have string values : list of str
     """
+    # Pre-check first element to skip non-string columns fast,
+    # then use generator (not list) in all() for short-circuit evaluation
     return [
         col
         for col in trial_data.columns
-        if all([isinstance(el, str) for el in trial_data[col]])
+        if isinstance(trial_data[col].iloc[0], str)
+        and all(isinstance(el, str) for el in trial_data[col].values)
     ]
 
 
@@ -308,4 +323,8 @@ def get_trial_lengths(trial_data: pd.DataFrame, ref_field: str = None) -> np.nda
     -------
     numpy array with the length of each trial
     """
-    return trial_data.apply(lambda trial: get_trial_length(trial, ref_field), axis=1).values
+    # Direct column access instead of slow row-by-row apply
+    if ref_field is None:
+        ref_field = determine_ref_field(trial_data)
+
+    return np.array([arr.shape[0] for arr in trial_data[ref_field].values])

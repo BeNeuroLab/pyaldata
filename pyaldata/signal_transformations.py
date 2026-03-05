@@ -56,6 +56,22 @@ def center(arr: np.ndarray) -> np.ndarray:
     return arr - arr.mean(axis=0)
 
 
+def _center_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+) -> None:
+    """Core in-place logic for center_signal (no DataFrame copy)."""
+    if isinstance(signals, str):
+        signals = [signals]
+
+    for signal in signals:
+        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
+        col_mean = np.mean(whole_signal, axis=0)
+
+        trial_data[signal] = [s - col_mean for s in trial_data[signal]]
+
+
 @utils.copy_td
 def center_signal(
     trial_data: pd.DataFrame,
@@ -80,15 +96,7 @@ def center_signal(
     trial_data : pd.DataFrame
         data with the given field centered
     """
-    if isinstance(signals, str):
-        signals = [signals]
-
-    for signal in signals:
-        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
-        col_mean = np.mean(whole_signal, axis=0)
-
-        trial_data[signal] = [s - col_mean for s in trial_data[signal]]
-
+    _center_signal_inplace(trial_data, signals, train_trials)
     return trial_data
 
 
@@ -107,6 +115,23 @@ def z_score(arr: np.ndarray) -> np.ndarray:
     z-scored array with the same shape as arr
     """
     return (arr - arr.mean(axis=0)) / arr.std(axis=0)
+
+
+def _z_score_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+) -> None:
+    """Core in-place logic for z_score_signal (no DataFrame copy)."""
+    if isinstance(signals, str):
+        signals = [signals]
+
+    for signal in signals:
+        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
+        col_mean = np.mean(whole_signal, axis=0)
+        col_std = np.std(whole_signal, axis=0)
+
+        trial_data[signal] = [(s - col_mean) / col_std for s in trial_data[signal]]
 
 
 @utils.copy_td
@@ -134,17 +159,30 @@ def z_score_signal(
     trial_data : pd.DataFrame
         data with the given field z-scored
     """
+    _z_score_signal_inplace(trial_data, signals, train_trials)
+    return trial_data
+
+
+def _sqrt_transform_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+) -> None:
+    """Core in-place logic for sqrt_transform_signal (no DataFrame copy)."""
+    if train_trials is not None:
+        utils.warnings.warn("train_trials is not used in sqrt_transform")
+
     if isinstance(signals, str):
         signals = [signals]
 
     for signal in signals:
-        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
-        col_mean = np.mean(whole_signal, axis=0)
-        col_std = np.std(whole_signal, axis=0)
+        for s in trial_data[signal]:
+            if (s < 0).any():
+                raise ValueError(
+                    "signal cannot contain negative values when square-root transforming"
+                )
 
-        trial_data[signal] = [(s - col_mean) / col_std for s in trial_data[signal]]
-
-    return trial_data
+        trial_data[signal] = [np.sqrt(s) for s in trial_data[signal]]
 
 
 @utils.copy_td
@@ -171,22 +209,25 @@ def sqrt_transform_signal(
     trial_data : pd.DataFrame
         data with the given field transformed
     """
-    if train_trials is not None:
-        utils.warnings.warn("train_trials is not used in sqrt_transform")
+    _sqrt_transform_signal_inplace(trial_data, signals, train_trials)
+    return trial_data
 
+
+def _zero_normalize_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+) -> None:
+    """Core in-place logic for zero_normalize_signal (no DataFrame copy)."""
     if isinstance(signals, str):
         signals = [signals]
 
     for signal in signals:
-        for s in trial_data[signal]:
-            if (s < 0).any():
-                raise ValueError(
-                    "signal cannot contain negative values when square-root transforming"
-                )
+        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
+        col_min = np.min(whole_signal, axis=0)
+        col_range = get_range(whole_signal, axis=0)
 
-        trial_data[signal] = [np.sqrt(s) for s in trial_data[signal]]
-
-    return trial_data
+        trial_data[signal] = [(s - col_min) / col_range for s in trial_data[signal]]
 
 
 @utils.copy_td
@@ -213,17 +254,25 @@ def zero_normalize_signal(
     trial_data : pd.DataFrame
         data with the given field normalized
     """
+    _zero_normalize_signal_inplace(trial_data, signals, train_trials)
+    return trial_data
+
+
+def _center_normalize_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+) -> None:
+    """Core in-place logic for center_normalize_signal (no DataFrame copy)."""
     if isinstance(signals, str):
         signals = [signals]
 
     for signal in signals:
         whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
-        col_min = np.min(whole_signal, axis=0)
+        col_mean = np.mean(whole_signal, axis=0)
         col_range = get_range(whole_signal, axis=0)
 
-        trial_data[signal] = [(s - col_min) / col_range for s in trial_data[signal]]
-
-    return trial_data
+        trial_data[signal] = [(s - col_mean) / col_range for s in trial_data[signal]]
 
 
 @utils.copy_td
@@ -250,17 +299,26 @@ def center_normalize_signal(
     trial_data : pd.DataFrame
         data with the given field normalized
     """
+    _center_normalize_signal_inplace(trial_data, signals, train_trials)
+    return trial_data
+
+
+def _soft_normalize_signal_inplace(
+    trial_data: pd.DataFrame,
+    signals: Union[str, Sequence[str]],
+    train_trials: Sequence[int] = None,
+    alpha: float = 5.0,
+) -> None:
+    """Core in-place logic for soft_normalize_signal (no DataFrame copy)."""
     if isinstance(signals, str):
         signals = [signals]
 
     for signal in signals:
         whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
-        col_mean = np.mean(whole_signal, axis=0)
-        col_range = get_range(whole_signal, axis=0)
 
-        trial_data[signal] = [(s - col_mean) / col_range for s in trial_data[signal]]
+        norm_factor = get_range(whole_signal) + alpha
 
-    return trial_data
+        trial_data[signal] = [s / norm_factor for s in trial_data[signal]]
 
 
 @utils.copy_td
@@ -289,16 +347,7 @@ def soft_normalize_signal(
     trial_data : pd.DataFrame
         data with the given field soft-normalized
     """
-    if isinstance(signals, str):
-        signals = [signals]
-
-    for signal in signals:
-        whole_signal = extract_signals.concat_trials(trial_data, signal, train_trials)
-
-        norm_factor = get_range(whole_signal) + alpha
-
-        trial_data[signal] = [s / norm_factor for s in trial_data[signal]]
-
+    _soft_normalize_signal_inplace(trial_data, signals, train_trials, alpha)
     return trial_data
 
 
@@ -341,15 +390,17 @@ def transform_signal(
     trial_data : pd.DataFrame
         data with the given field transformed
     """
-    method_dict = {
-        "center": center_signal,
-        "center_normalize": center_normalize_signal,
-        "zero_normalize": zero_normalize_signal,
-        "sqrt_transform": sqrt_transform_signal,
-        "sqrt": sqrt_transform_signal,
-        "z_score": z_score_signal,
-        "z-score": z_score_signal,
-        "soft_normalize": soft_normalize_signal,
+    # Map to in-place versions to avoid redundant DataFrame copies.
+    # transform_signal is already @copy_td, so we operate on the single copy.
+    _method_dict = {
+        "center": _center_signal_inplace,
+        "center_normalize": _center_normalize_signal_inplace,
+        "zero_normalize": _zero_normalize_signal_inplace,
+        "sqrt_transform": _sqrt_transform_signal_inplace,
+        "sqrt": _sqrt_transform_signal_inplace,
+        "z_score": _z_score_signal_inplace,
+        "z-score": _z_score_signal_inplace,
+        "soft_normalize": _soft_normalize_signal_inplace,
     }
 
     if isinstance(transformations, str):
@@ -360,6 +411,6 @@ def transform_signal(
 
     for signal in signals:
         for trans in transformations:
-            trial_data = method_dict[trans](trial_data, signal, train_trials, **kwargs)
+            _method_dict[trans](trial_data, signal, train_trials, **kwargs)
 
     return trial_data

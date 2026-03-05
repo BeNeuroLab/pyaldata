@@ -308,7 +308,8 @@ def select_trials(
     if isinstance(query, str):
         trials_to_keep = trial_data.query(query).index
     elif callable(query):
-        trials_to_keep = [query(trial) for (i, trial) in trial_data.iterrows()]
+        # Use apply instead of iterrows for better performance
+        trials_to_keep = trial_data.apply(query, axis=1)
     else:
         trials_to_keep = query
 
@@ -340,7 +341,9 @@ def keep_common_trials(
     (subset_a, subset_b) : tuple of dataframes
     """
     common_ids = np.intersect1d(df_a[join_field].values, df_b[join_field].values)
-    subset_a = select_trials(df_a, lambda trial: trial[join_field] in common_ids)
-    subset_b = select_trials(df_b, lambda trial: trial[join_field] in common_ids)
+    # Use set for O(1) lookup instead of O(n) 'in' on numpy array
+    common_ids_set = set(common_ids)
+    subset_a = select_trials(df_a, lambda trial: trial[join_field] in common_ids_set)
+    subset_b = select_trials(df_b, lambda trial: trial[join_field] in common_ids_set)
 
     return subset_a, subset_b

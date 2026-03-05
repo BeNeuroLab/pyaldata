@@ -73,7 +73,7 @@ def clean_0d_spike_fields(df: pd.DataFrame) -> pd.DataFrame:
     """
     for c in df.columns:
         if all(isinstance(el, np.ndarray) for el in df[c].values):
-            if all([arr.ndim == 0 for arr in df[c]]):
+            if all(arr.ndim == 0 for arr in df[c]):
                 df[c] = [arr.item() for arr in df[c]]
 
     return df
@@ -95,21 +95,23 @@ def clean_integer_fields(df: pd.DataFrame):
     """
     bad_fields = []
     for field in df.columns:
+        # Skip string fields early — they can never be integer
+        first_val = df[field].values[0]
+        if isinstance(first_val, str):
+            continue
+
         try:
-            if isinstance(df[field].values[0], np.ndarray):
+            if isinstance(first_val, np.ndarray):
                 int_arrays = [np.int32(arr) for arr in df[field]]
                 if all(
-                    [
-                        np.allclose(int_arr, arr)
-                        for (int_arr, arr) in zip(int_arrays, df[field])
-                    ]
+                    np.allclose(int_arr, arr)
+                    for (int_arr, arr) in zip(int_arrays, df[field])
                 ):
                     df[field] = int_arrays
             else:
-                if not isinstance(df[field].values[0], str):
-                    int_version = np.int32(df[field])
-                    if np.allclose(int_version, df[field]):
-                        df[field] = int_version
+                int_version = np.int32(df[field])
+                if np.allclose(int_version, df[field]):
+                    df[field] = int_version
         except:
             bad_fields.append(field)
 

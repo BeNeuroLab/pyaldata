@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from .array_utils import split_array
-from .utils import get_trial_length
+from .utils import get_trial_length, get_trial_lengths
 
 __all__ = [
     "concat_trials",
@@ -61,7 +61,7 @@ def reverse_concat(X: np.ndarray, df: pd.DataFrame) -> list[np.ndarray]:
     -------
     list of subarrays
     """
-    trial_lengths = [get_trial_length(trial) for (i, trial) in df.iterrows()]
+    trial_lengths = get_trial_lengths(df).tolist()
     return split_array(X, trial_lengths)
 
 

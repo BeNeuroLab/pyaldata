@@ -142,9 +142,11 @@ def expand_field_in_time(trial_data: pd.DataFrame, field: str, out_fieldname: st
     if out_fieldname is None:
         out_fieldname = field + "_ext"
 
+    # Vectorized: get trial lengths from ref field directly instead of iterrows
+    trial_lengths = utils.get_trial_lengths(trial_data)
     trial_data[out_fieldname] = [
-        trial[field] * np.ones(utils.get_trial_length(trial))
-        for (i, trial) in trial_data.iterrows()
+        val * np.ones(length)
+        for val, length in zip(trial_data[field].values, trial_lengths)
     ]
 
     return trial_data

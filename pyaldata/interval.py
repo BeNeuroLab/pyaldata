@@ -326,7 +326,9 @@ def extract_interval_from_signal(
     -------
     list of the extracted np.arrays
     """
-    return [trial[signal][epoch_fun(trial), ...] for (i, trial) in trial_data.iterrows()]
+    # Use zip over column values + apply for epoch computation instead of iterrows
+    slices = trial_data.apply(epoch_fun, axis=1)
+    return [arr[sl, ...] for arr, sl in zip(trial_data[signal].values, slices)]
 
 
 def slice_in_trial(trial: pd.Series, sl: slice, warn: bool = False) -> bool:

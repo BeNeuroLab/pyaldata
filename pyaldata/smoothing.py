@@ -151,8 +151,8 @@ def smooth_signals(
     if isinstance(signals, str):
         signals = [signals]
 
-    for i, trial in trial_data.iterrows():
-        for sig in signals:
-            trial_data.at[i, sig] = smooth_data(trial[sig], win=win, backend=backend)
+    # Use list comprehension per signal instead of slow iterrows + .at[] assignment
+    for sig in signals:
+        trial_data[sig] = [smooth_data(arr, win=win, backend=backend) for arr in trial_data[sig]]
 
     return trial_data

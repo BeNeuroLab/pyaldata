@@ -4,7 +4,7 @@ from pathlib import Path
 
 from . import data_cleaning
 
-__all__ = ["mat2dataframe"
+__all__ = ["mat2dataframe",
            "load_pyaldata"]
 
 
@@ -54,7 +54,6 @@ def mat2dataframe(path: str, shift_idx_fields: bool, td_name: str = None) -> pd.
 
     df = pd.DataFrame(mat[td_name])
 
-    df = data_cleaning.clean_0d_array_fields(df)
     df = data_cleaning.clean_0d_array_fields(df)
     df = data_cleaning.clean_integer_fields(df)
 

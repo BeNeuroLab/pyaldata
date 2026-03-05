@@ -16,11 +16,9 @@ def trials_are_same_length(trial_data: pd.DataFrame, ref_field: str = None) -> b
         time-varying field to use for identifying the rest
         if not given, the first field that ends with "spikes" or "rates" is used
     """
-    trial_lengths = [
-        utils.get_trial_length(trial, ref_field=ref_field)
-        for (_, trial) in trial_data.iterrows()
-    ]
-    return len(set(trial_lengths)) == 1
+    # Vectorized: use get_trial_lengths directly instead of iterrows
+    trial_lengths = utils.get_trial_lengths(trial_data, ref_field=ref_field)
+    return len(np.unique(trial_lengths)) == 1
 
 
 def all_integer(arr: np.ndarray) -> bool:
